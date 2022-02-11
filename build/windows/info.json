@@ -1,0 +1,15 @@
+{
+	"fixed": {
+		"file_version": "1.0.0"
+	},
+	"info": {
+		"0000": {
+			"ProductVersion": "1.0.0",
+			"CompanyName": "putio-desktop",
+			"FileDescription": "putio-desktop",
+			"LegalCopyright": "Copyright.........",
+			"ProductName": "putio-desktop",
+			"Comments": "Built using Wails (https://wails.app)"
+		}
+	}
+}
