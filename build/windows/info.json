@@ -5,8 +5,8 @@
 	"info": {
 		"0000": {
 			"ProductVersion": "1.0.0",
-			"CompanyName": "putio-desktop",
-			"FileDescription": "putio-desktop",
+			"CompanyName": "Benjamin Ryan (redraskal)",
+			"FileDescription": "https://github.com/redraskal/putio-desktop",
 			"LegalCopyright": "Copyright.........",
 			"ProductName": "putio-desktop",
 			"Comments": "Built using Wails (https://wails.app)"

@@ -54,7 +54,7 @@ func main() {
 			WindowIsTranslucent:  true,
 			About: &mac.AboutInfo{
 				Title:   "Put.io Desktop",
-				Message: "Part of the Lavalier project",
+				Message: "A desktop client for put.io supporting multi-connection downloads & resuming downloads.",
 				Icon:    icon,
 			},
 		},
