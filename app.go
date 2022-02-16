@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"log"
+
+	"github.com/redraskal/putio-desktop/downloads"
 )
 
 type App struct {
 	ctx         context.Context
 	frontend    frontend
+	downloads   *downloads.Client
 	currentPath string
 	scripts     js
 }
@@ -25,6 +28,18 @@ func (b *App) startup(ctx context.Context) {
 	if f := ctx.Value("frontend"); f != nil {
 		b.frontend = f.(frontend)
 	}
+	if d, err := downloads.New(downloads.Options{
+		Path:          ".",
+		MaxConcurrent: 5,
+		Splits:        10,
+	}, b.downloadState); err == nil {
+		b.downloads = d
+		d.Run()
+	}
+}
+
+func (b *App) downloadState(d downloads.Download) {
+	// TODO
 }
 
 func (b *App) domReady(ctx context.Context) {
