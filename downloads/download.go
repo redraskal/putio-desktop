@@ -1,6 +1,10 @@
 package downloads
 
-import "net/http"
+import (
+	"log"
+	"net/http"
+	"strconv"
+)
 
 type incompleteFile struct {
 	ID           int         `json:"id"`
@@ -21,6 +25,12 @@ func (c *Client) download(d Download) {
 	c.slots--
 	c.mutex.Unlock()
 	// TODO: Download head to find file length
+	fileLength, err := d.head()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	log.Println("Len: ", fileLength)
 	// TODO: Load incompleteFile struct if it was paused
 	// progress := incompleteFile{
 	// 	ID: d.ID,
@@ -34,6 +44,9 @@ func (c *Client) download(d Download) {
 
 func (d Download) head() (fileLength int, err error) {
 	res, err := http.Head(d.URL)
-	// TODO
-	return
+	if err != nil {
+		return
+	}
+	val := res.Header.Get("Content-Length")
+	return strconv.Atoi(val)
 }

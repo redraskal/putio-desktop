@@ -31,7 +31,7 @@ func main() {
 		Fullscreen:        false,
 		Frameless:         false,
 		StartHidden:       false,
-		WindowStartState:  options.Maximised,
+		WindowStartState:  options.Normal,
 		HideWindowOnClose: false,
 		RGBA:              &options.RGBA{R: 16, G: 16, B: 16, A: 255},
 		Assets:            assets,

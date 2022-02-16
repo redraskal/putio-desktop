@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strings"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -15,12 +16,12 @@ type js struct {
 func (b *App) ReportPath(path string) {
 	log.Printf("Current page reported: %s", path)
 	// If true, still local- must fetch wailsjs before redirecting to put.io.
-	if path == "file://wails/" {
+	b.currentPath = path
+	if b.requiresRedirect() {
 		runtime.EventsEmit(b.ctx, "report_file", "wails/runtime.js")
 		runtime.EventsEmit(b.ctx, "report_file", "wails/ipc.js")
 		runtime.EventsEmit(b.ctx, "report_file", "main.js")
 	}
-	b.currentPath = path
 }
 
 func (b *App) ReportFile(path string, content string) {
@@ -46,7 +47,7 @@ func (b *App) injectJS() {
 }
 
 func (b *App) requiresRedirect() bool {
-	return b.currentPath == "file://wails/"
+	return strings.HasSuffix(b.currentPath, "://wails/")
 }
 
 func (b *App) canRedirect() bool {

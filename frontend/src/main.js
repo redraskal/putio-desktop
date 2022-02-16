@@ -34,7 +34,9 @@ window.addEventListener('stateChange', function () {
 });
 
 // Reports the path on page load.
-this.window.go.main.App.ReportPath(window.location.href);
+window.go.main.App.ReportPath(window.location.href);
+// Enables window drag.
+document.body.toggleAttribute("data-wails-drag");
 
 //
 // REPORTING WAILSJS & APP FILES TO GO
@@ -67,10 +69,51 @@ function _waitFor(selector, callback) {
   }, 50);
 }
 
+function _element(tagName, innerHTML) {
+  console.log('hi');
+  element = document.createElement(tagName);
+  element.innerHTML = innerHTML.replace(/\s\s+/g, '');
+  return element;
+}
+
 function injectDownloadsTab(transfers) {
-  downloads = document.createElement("li");
-  downloads.innerHTML = '<a class="" href="/downloads"><i class="flaticon stroke cloud-download-1"></i><span>Downloads</span><label for="Downloads" class="circle" style="display: none;"></label></a>';
+  downloads = _element("li", `
+    <a class="" href="/downloads">
+      <i class="flaticon stroke cloud-download-1"></i>
+      <span>Downloads</span>
+      <label for="Downloads" class="circle" style="display: none;"></label>
+    </a>
+  `);
+  downloads.addEventListener('click', function(e) {
+    e.preventDefault();
+    injectDownloadsMenu();
+  });
   transfers.parentNode.insertBefore(downloads, transfers.nextSibling);
+}
+
+function injectDownloadsMenu() {
+  downloads = _element("div", `
+    <div id="breadcrumb">
+      <div class="title" role="heading" aria-level="1">Downloads</div>
+    </div>
+    <div class="subactions">
+      <div class="subaction">
+        <button class="btn btn-default btn-mini btn-link" type="button">
+          <i class="flaticon solid magic-wand-1"></i>
+          <span class="btn-label">Clear completed</span>
+        </button>
+      </div>
+    </div>
+    <div class="sticky">
+      <div class="transfer-header">
+        TODO
+      </div>
+    </div>
+  `);
+  downloads.setAttribute('class', 'transfers');
+  rel = document.querySelector(".rel")
+  rel.removeChild();
+  document.querySelector(".rel").appendChild(downloads);
 }
 
 function injectUI() {
