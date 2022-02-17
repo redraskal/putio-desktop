@@ -34,7 +34,6 @@ func (c *Client) download(d Download) {
 	// TODO: Load incompleteFile struct if it was paused
 	// progress := incompleteFile{
 	// 	ID: d.ID,
-
 	// }
 	// TODO: Create file and fill to total length
 	for i := 0; i <= c.opt.Splits; i++ {

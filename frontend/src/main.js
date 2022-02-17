@@ -22,11 +22,11 @@ var _pushEvent = function (method, eventName) {
 };
 
 // Patches history state changes to dispatch events.
-history.pushState = _pushEvent(history.pushState, 'stateChange')
-history.replaceState = _pushEvent(history.replaceState, 'stateChange');
+history.pushState = _pushEvent(history.pushState, "stateChange")
+history.replaceState = _pushEvent(history.replaceState, "stateChange");
 
 // Reports the new path when the displayed path is modified.
-window.addEventListener('stateChange', function () {
+window.addEventListener("stateChange", function () {
   this.window.go.main.App.ReportPath(window.location.href);
   if (signedIn() && !uiInjected()) {
     injectUI();
@@ -35,8 +35,6 @@ window.addEventListener('stateChange', function () {
 
 // Reports the path on page load.
 window.go.main.App.ReportPath(window.location.href);
-// Enables window drag.
-document.body.toggleAttribute("data-wails-drag");
 
 //
 // REPORTING WAILSJS & APP FILES TO GO
@@ -45,7 +43,7 @@ document.body.toggleAttribute("data-wails-drag");
 window.runtime.EventsOn("report_file", path => {
   // Requests the file using XML since fetch blocks file:// requests :(
   var client = new XMLHttpRequest();
-  client.open('GET', path);
+  client.open("GET", path);
   client.onreadystatechange = function () {
     if (client.responseText.length > 0) {
       window.go.main.App.ReportFile(path, client.responseText);
@@ -69,30 +67,33 @@ function _waitFor(selector, callback) {
   }, 50);
 }
 
-function _element(tagName, innerHTML) {
-  console.log('hi');
+function _construct(tagName, innerHTML) {
   element = document.createElement(tagName);
   element.innerHTML = innerHTML.replace(/\s\s+/g, '');
   return element;
 }
 
 function injectDownloadsTab(transfers) {
-  downloads = _element("li", `
-    <a class="" href="/downloads">
+  downloads = _construct("li", `
+    <a href="/downloads">
       <i class="flaticon stroke cloud-download-1"></i>
       <span>Downloads</span>
       <label for="Downloads" class="circle" style="display: none;"></label>
     </a>
   `);
-  downloads.addEventListener('click', function(e) {
+  downloads.addEventListener("click", function (e) {
     e.preventDefault();
-    injectDownloadsMenu();
-  });
+    previousTab = transfers.parentNode.querySelector('a[class="selected"]');
+    injectDownloadsMenu(previousTab);
+  })
   transfers.parentNode.insertBefore(downloads, transfers.nextSibling);
 }
 
-function injectDownloadsMenu() {
-  downloads = _element("div", `
+/* Injects a Downloads menu by hiding the previous view and appending the new one.
+   React would get sad and stop working if we were to replace the children of the .rel element. */
+function injectDownloadsMenu(previousTab) {
+  if (document.querySelector('div[data-downloads]')) return;
+  downloads = _construct("div", `
     <div id="breadcrumb">
       <div class="title" role="heading" aria-level="1">Downloads</div>
     </div>
@@ -110,10 +111,27 @@ function injectDownloadsMenu() {
       </div>
     </div>
   `);
-  downloads.setAttribute('class', 'transfers');
-  rel = document.querySelector(".rel")
-  rel.removeChild();
-  document.querySelector(".rel").appendChild(downloads);
+  // Replaces the active tab link with Downloads.
+  previousTab.setAttribute("class", "");
+  downloadsTab = document.querySelector('a[href="/downloads"]');
+  downloadsTab.setAttribute("class", "selected");
+  // Applies the transfers layout.
+  downloads.setAttribute("class", "transfers");
+  // Fetches the root element.
+  rel = document.querySelector(".rel");
+  // Hides the previous view.
+  previousView = rel.firstChild;
+  previousView.setAttribute("style", "display: none;");
+  // Appends the new Downloads view.
+  downloads.toggleAttribute("data-downloads");
+  rel.appendChild(downloads);
+  // Listens for a view change to later reverse our changes.
+  window.addEventListener("stateChange", function () {
+    downloads.remove();
+    downloadsTab.setAttribute("class", "");
+    previousTab.setAttribute("class", "selected");
+    previousView.removeAttribute("style");
+  }, { once: true });
 }
 
 function injectUI() {

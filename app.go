@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"runtime"
 
 	"github.com/redraskal/putio-desktop/downloads"
 )
@@ -45,6 +46,10 @@ func (b *App) downloadState(d downloads.Download) {
 func (b *App) domReady(ctx context.Context) {
 	if !b.requiresRedirect() {
 		b.injectJS()
+	}
+	// Enables window drag for macOS (this feature seems to break interactions on Windows).
+	if runtime.GOOS == "darwin" {
+		b.frontend.ExecJS(`document.querySelector('header').toggleAttribute("data-wails-drag");`)
 	}
 }
 
