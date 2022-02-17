@@ -32,10 +32,8 @@ history.replaceState = _pushEvent(history.replaceState, "stateChange");
 // Reports the new path when the displayed path is modified.
 window.addEventListener("stateChange", function () {
   this.window.go.main.App.ReportPath(window.location.href);
-  if (signedIn()) {
-    if (!uiInjected()) {
-      injectUI();
-    }
+  if (signedIn() && !uiInjected()) {
+    injectUI();
   }
 });
 
