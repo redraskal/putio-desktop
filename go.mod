@@ -2,9 +2,13 @@ module github.com/redraskal/putio-desktop
 
 go 1.17
 
-require github.com/wailsapp/wails/v2 v2.0.0-beta.30
+require (
+	github.com/sqweek/dialog v0.0.0-20211002065838-9a201b55ab91
+	github.com/wailsapp/wails/v2 v2.0.0-beta.30
+)
 
 require (
+	github.com/TheTitanrain/w32 v0.0.0-20180517000239-4f5cfb03fabf // indirect
 	github.com/andybalholm/brotli v1.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fasthttp/websocket v0.0.0-20200320073529-1554a54587ab // indirect
@@ -35,3 +39,5 @@ require (
 )
 
 // replace github.com/wailsapp/wails/v2 v2.0.0-beta.30 => E:\go\pkg\mod\github.com\wailsapp\wails\v2@v2.0.0-beta.30
+
+replace github.com/sqweek/dialog => ../dialog

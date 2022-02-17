@@ -5,12 +5,27 @@ const go = {
   "main": {
     "App": {
       /**
+       * ListDownloads
+       * @returns {Promise<Array<Download>>}  - Go Type: []downloads.Download
+       */
+      "ListDownloads": () => {
+        return window.go.main.App.ListDownloads();
+      },
+      /**
        * Log
        * @param {string} arg1 - Go Type: string
        * @returns {Promise<void>} 
        */
       "Log": (arg1) => {
         return window.go.main.App.Log(arg1);
+      },
+      /**
+       * Queue
+       * @param {string} arg1 - Go Type: string
+       * @returns {Promise<void>} 
+       */
+      "Queue": (arg1) => {
+        return window.go.main.App.Queue(arg1);
       },
       /**
        * ReportFile

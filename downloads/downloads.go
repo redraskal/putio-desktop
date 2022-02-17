@@ -1,6 +1,7 @@
 package downloads
 
 import (
+	"io"
 	"math/rand"
 	"path/filepath"
 	"sync"
@@ -21,11 +22,12 @@ type Options struct {
 }
 
 type Download struct {
-	ID     int
-	Name   string
-	URL    string
-	Path   string
-	Status DownloadStatus
+	ID     int            `json:"id"`
+	Name   string         `json:"name"`
+	Status DownloadStatus `json:"status"`
+	url    string
+	path   string
+	writer *io.Writer
 }
 
 type DownloadStatus int
@@ -55,9 +57,9 @@ func (c *Client) Queue(url, path string) (id int) {
 	d := Download{
 		ID:     id,
 		Name:   filepath.Base(path),
-		URL:    url,
-		Path:   path,
 		Status: Queued,
+		url:    url,
+		path:   path,
 	}
 	c.downloads = append(c.downloads, d)
 	c.mutex.Unlock()

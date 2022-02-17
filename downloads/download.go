@@ -2,8 +2,6 @@ package downloads
 
 import (
 	"log"
-	"net/http"
-	"strconv"
 )
 
 type incompleteFile struct {
@@ -20,17 +18,18 @@ func (c *Client) download(d Download) {
 	if d.Status >= Downloading {
 		return
 	}
+	log.Printf("Starting download for %d, %s\n", d.ID, d.url)
 	c.updateStatus(d.ID, Downloading)
 	c.mutex.Lock()
 	c.slots--
 	c.mutex.Unlock()
-	// TODO: Download head to find file length
-	fileLength, err := d.head()
+	header, err := Head(d.url)
 	if err != nil {
 		log.Println(err)
+		c.updateStatus(d.ID, Error)
 		return
 	}
-	log.Println("Len: ", fileLength)
+	log.Println("Len: ", header.ContentLength)
 	// TODO: Load incompleteFile struct if it was paused
 	// progress := incompleteFile{
 	// 	ID: d.ID,
@@ -39,13 +38,4 @@ func (c *Client) download(d Download) {
 	for i := 0; i <= c.opt.Splits; i++ {
 		// TODO
 	}
-}
-
-func (d Download) head() (fileLength int, err error) {
-	res, err := http.Head(d.URL)
-	if err != nil {
-		return
-	}
-	val := res.Header.Get("Content-Length")
-	return strconv.Atoi(val)
 }

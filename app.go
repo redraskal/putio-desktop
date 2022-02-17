@@ -39,10 +39,6 @@ func (b *App) startup(ctx context.Context) {
 	}
 }
 
-func (b *App) downloadState(d downloads.Download) {
-	// TODO
-}
-
 func (b *App) domReady(ctx context.Context) {
 	if !b.requiresRedirect() {
 		b.injectJS()

@@ -6,6 +6,10 @@ function uiInjected() {
   return document.querySelector('a[href="/downloads"]') != null;
 }
 
+function isDownloadURL(url) {
+  return url.startsWith("https://api.put.io/v2/files/") || url.indexOf(".put.io/zipstream/") > -1;
+}
+
 //
 // REPORTING CURRENT PAGE URL TO GO
 //
@@ -28,8 +32,10 @@ history.replaceState = _pushEvent(history.replaceState, "stateChange");
 // Reports the new path when the displayed path is modified.
 window.addEventListener("stateChange", function () {
   this.window.go.main.App.ReportPath(window.location.href);
-  if (signedIn() && !uiInjected()) {
-    injectUI();
+  if (signedIn()) {
+    if (!uiInjected()) {
+      injectUI();
+    }
   }
 });
 
@@ -139,6 +145,23 @@ function injectUI() {
   _waitFor("aside > ul > li:nth-child(2)", function (transfers) {
     injectDownloadsTab(transfers);
   });
+  tryOverrideDLs();
+}
+
+function tryOverrideDLs() {
+  setInterval(function () {
+    document.querySelectorAll("a").forEach(element => {
+      const href = element.href;
+      if (!href || !isDownloadURL(href) || element.override) return;
+      element.href = "#";
+      element.override = true;
+      element.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.go.main.App.Queue(href);
+      }, { capture: true, useCapture: true });
+    });
+  }, 50);
 }
 
 if (signedIn()) {

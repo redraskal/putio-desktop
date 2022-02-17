@@ -13,7 +13,7 @@ func (c *Client) updateStatus(id int, s DownloadStatus) {
 }
 
 func (c *Client) withStatus(s DownloadStatus) []Download {
-	res := make([]Download, len(c.downloads))
+	res := make([]Download, 0)
 	for _, val := range c.downloads {
 		if val.Status == s {
 			res = append(res, val)
