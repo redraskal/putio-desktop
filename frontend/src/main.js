@@ -93,6 +93,17 @@ function injectDownloadsTab(transfers) {
     injectDownloadsMenu(previousTab);
   })
   transfers.parentNode.insertBefore(downloads, transfers.nextSibling);
+  count = downloads.querySelector("label");
+  window.runtime.EventsOn("download_state", () => {
+    window.go.main.App.CountDownloading().then(res => {
+      if (res > 0) {
+        count.innerHTML = res;
+        count.setAttribute("style", "");
+      } else {
+        count.setAttribute("style", "display: none;");
+      }
+    })
+  });
 }
 
 /* Injects a Downloads menu by hiding the previous view and appending the new one.
@@ -111,11 +122,51 @@ function injectDownloadsMenu(previousTab) {
         </button>
       </div>
     </div>
-    <div class="sticky">
+    <div class="sticky" style="display: none;">
       <div class="transfer-header">
-        TODO
+        <div class="checkbox-container">
+          <div class="checkbox">
+            <span class="effective-area"></span>
+            <input id="checkbox-all" type="checkbox">
+            <label for="checkbox-all">Select all</label>
+          </div>
+        </div>
+        <div class="actions-bar">
+          <div class="action-item">
+            <div class="dropdown dropdown-gray">
+              <button class="btn btn-default dropdown-label btn-fixed" type="button">
+              <i class="flaticon solid crosshairs-1"></i>
+              <span class="btn-label">Actions</span>
+              <i class="flaticon stroke down-1"></i>
+            </button>
+          <div class="dropdown-content">
+            <div class="dropdown-option btn-default with-icon">
+              <a><span><i id="Transfers-Actions-Re_Announce" class="flaticon solid bell-1"></i>Re-announce</span></a>
+            </div>
+            <div class="dropdown-option btn-default with-icon">
+              <a><span><i id="Transfers-Actions-Cancel_Selected" class="flaticon solid x-2"></i>Cancel selected</span></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    <div class="action-item" style="display: none;">
+      <div class="dropdown dropdown-gray">
+        <button class="btn btn-default dropdown-label btn-fixed" type="button">
+          <i class="flaticon stroke time-2"></i><span class="btn-label">Sort by ETA</span><i class="flaticon stroke down-1"></i>
+        </button>
+      <div class="dropdown-content">
+        <div class="dropdown-option btn-default with-icon">
+          <a><span><i id="Transfers-Sort-Name" class="flaticon stroke type-1"></i>Name</span></a>
+        </div>
+        <div class="dropdown-option btn-default with-icon">
+          <a><span><i id="Transfers-Sort-Date_Added" class="flaticon stroke calendar-1"></i>Date added</span></a>
+        </div>
+        <div class="dropdown-option btn-default with-icon">
+          <a><span><i id="Transfers-Sort-Downloaded" class="flaticon stroke fold-down-1"></i>Downloaded</span></a>
+        </div>
       </div>
     </div>
+    <ul class="transfer-list"></ul>
   `);
   // Replaces the active tab link with Downloads.
   previousTab.setAttribute("class", "");

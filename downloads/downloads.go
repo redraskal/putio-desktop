@@ -64,7 +64,7 @@ func (c *Client) Queue(url, path string) (id int) {
 	c.downloads = append(c.downloads, d)
 	c.mutex.Unlock()
 	c.callback(d)
-	if len(c.withStatus(Downloading)) == 0 {
+	if len(c.WithStatus(Downloading)) == 0 {
 		c.Run()
 	}
 	return
@@ -72,7 +72,7 @@ func (c *Client) Queue(url, path string) (id int) {
 
 func (c *Client) Retry(id int) {
 	c.updateStatus(id, Queued)
-	if len(c.withStatus(Downloading)) == 0 {
+	if len(c.WithStatus(Downloading)) == 0 {
 		c.Run()
 	}
 }
@@ -83,7 +83,7 @@ func (c *Client) Pause(id int) {
 
 func (c *Client) Resume(id int) {
 	c.updateStatus(id, Queued)
-	if len(c.withStatus(Downloading)) == 0 {
+	if len(c.WithStatus(Downloading)) == 0 {
 		c.Run()
 	}
 }
@@ -94,8 +94,8 @@ func (c *Client) Cancel(id int) {
 
 func (c *Client) Run() {
 	// Find downloads to resume or start
-	priority := c.withStatus(Paused)
-	queue := c.withStatus(Queued)
+	priority := c.WithStatus(Paused)
+	queue := c.WithStatus(Queued)
 	slots := c.slots
 	for _, val := range priority {
 		if slots < 1 {

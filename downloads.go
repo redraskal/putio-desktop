@@ -8,18 +8,18 @@ import (
 
 	"github.com/redraskal/putio-desktop/downloads"
 	"github.com/sqweek/dialog"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 func (b *App) downloadState(d downloads.Download) {
-	log.Println("DEBUG DOWNLOAD STATE: ", d)
-	// TODO
+	runtime.EventsEmit(b.ctx, "download_state", d)
 }
 
 func (b *App) Queue(url string) {
 	go func() {
 		header, err := downloads.Head(url)
 		if err != nil {
-			// TODO: Send an alert to the client
+			b.frontend.ExecJS("alert('Download failed, " + err.Error() + "');")
 			log.Println(err)
 			return
 		}
@@ -34,6 +34,10 @@ func (b *App) Queue(url string) {
 		}
 		b.downloads.Queue(url, path)
 	}()
+}
+
+func (b *App) CountDownloading() int {
+	return len(b.downloads.WithStatus(downloads.Downloading))
 }
 
 func (b *App) ListDownloads() []downloads.Download {

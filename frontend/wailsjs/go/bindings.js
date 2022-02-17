@@ -5,6 +5,13 @@ const go = {
   "main": {
     "App": {
       /**
+       * CountDownloading
+       * @returns {Promise<number>}  - Go Type: int
+       */
+      "CountDownloading": () => {
+        return window.go.main.App.CountDownloading();
+      },
+      /**
        * ListDownloads
        * @returns {Promise<Array<Download>>}  - Go Type: []downloads.Download
        */

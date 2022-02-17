@@ -12,7 +12,7 @@ func (c *Client) updateStatus(id int, s DownloadStatus) {
 	}
 }
 
-func (c *Client) withStatus(s DownloadStatus) []Download {
+func (c *Client) WithStatus(s DownloadStatus) []Download {
 	res := make([]Download, 0)
 	for _, val := range c.downloads {
 		if val.Status == s {
