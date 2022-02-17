@@ -32,7 +32,7 @@ func (b *App) startup(ctx context.Context) {
 	if d, err := downloads.New(downloads.Options{
 		Path:          ".",
 		MaxConcurrent: 5,
-		Splits:        10,
+		Splits:        5,
 	}, b.downloadState); err == nil {
 		b.downloads = d
 		d.Run()

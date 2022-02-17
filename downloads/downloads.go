@@ -1,8 +1,11 @@
 package downloads
 
 import (
-	"io"
+	"encoding/json"
+	"log"
 	"math/rand"
+	"os"
+	"path"
 	"path/filepath"
 	"sync"
 )
@@ -22,12 +25,15 @@ type Options struct {
 }
 
 type Download struct {
-	ID     int            `json:"id"`
-	Name   string         `json:"name"`
-	Status DownloadStatus `json:"status"`
-	url    string
-	path   string
-	writer *io.Writer
+	ID           int            `json:"id"`
+	Name         string         `json:"name"`
+	Status       DownloadStatus `json:"status"`
+	transferInfo transferInfo
+}
+
+type transferInfo struct {
+	Url  string `json:"url"`
+	Path string `json:"path"`
 }
 
 type DownloadStatus int
@@ -42,9 +48,28 @@ const (
 )
 
 func New(opt Options, callback func(d Download)) (*Client, error) {
-	// TODO: Load download states from file
+	downloads := make([]Download, 0)
+	if file, err := os.ReadFile(path.Join(opt.Path, "downloads.json")); err == nil {
+		type layout struct {
+			Path string `json:"path"`
+			Download
+		}
+		data := make([]layout, 0)
+		if err = json.Unmarshal(file, &data); err == nil {
+			for i, val := range data {
+				val.Download.transferInfo = transferInfo{
+					Path: val.Path,
+				}
+				downloads[i] = val.Download
+			}
+		} else {
+			log.Println(err)
+		}
+	} else {
+		log.Println(err)
+	}
 	// TODO: Add shutdown hook
-	return &Client{opt, callback, []Download{}, opt.MaxConcurrent, &sync.Mutex{}}, nil
+	return &Client{opt, callback, downloads, opt.MaxConcurrent, &sync.Mutex{}}, nil
 }
 
 func (c *Client) Get() []Download {
@@ -58,8 +83,10 @@ func (c *Client) Queue(url, path string) (id int) {
 		ID:     id,
 		Name:   filepath.Base(path),
 		Status: Queued,
-		url:    url,
-		path:   path,
+		transferInfo: transferInfo{
+			Url:  url,
+			Path: path,
+		},
 	}
 	c.downloads = append(c.downloads, d)
 	c.mutex.Unlock()
