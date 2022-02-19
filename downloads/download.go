@@ -3,6 +3,7 @@ package downloads
 import (
 	"errors"
 	"log"
+	"os"
 )
 
 type incompleteFile struct {
@@ -10,6 +11,7 @@ type incompleteFile struct {
 	TargetLength int         `json:"len"`
 	ChunkSize    int         `json:"c"`
 	Splits       []fileSplit `json:"s"`
+	handle       *os.File
 }
 
 type fileSplit struct {
@@ -20,7 +22,8 @@ func (c *Client) download(d Download) {
 	if d.Status >= Downloading {
 		return
 	}
-	if d.transferInfo.Url == "" {
+	new := d.transferInfo.Url != ""
+	if !new {
 		// TODO: Attempt to load .incomplete file
 		return
 	}
@@ -41,21 +44,44 @@ func (c *Client) download(d Download) {
 		return
 	}
 	log.Println("Len: ", header.ContentLength)
-	progress := incompleteFile{
+	incompleteFile := incompleteFile{
 		ID:           d.ID,
 		TargetLength: header.ContentLength,
-		ChunkSize:    95, // mb
+		ChunkSize:    30 * 1e+6, // 30 mb
 		Splits:       make([]fileSplit, c.opt.Splits),
 	}
-	// TODO: Create file and fill to total length
+	handle, err := os.OpenFile(d.transferInfo.Path+".incomplete", os.O_RDWR|os.O_CREATE, 0755)
+	if err != nil {
+		log.Println(err)
+		c.updateStatus(d.ID, Error)
+		return
+	}
+	incompleteFile.handle = handle
+	defer handle.Close()
+	if new {
+		incompleteFile.prefill()
+	}
 	// TODO: Check if file length has changed if a .incomplete file was loaded
 	// TODO: Check hash of file?
-	for i, val := range progress.Splits {
+	for i, val := range incompleteFile.Splits {
 		log.Printf("split index: %d, complete: %d\n", i, val.ChunksComplete)
-		go progress.split(val)
+		go incompleteFile.download(val)
 	}
 }
 
-func (f *incompleteFile) split(s fileSplit) {
+func (f *incompleteFile) prefill() {
+	bufSize := f.ChunkSize
+	b := make([]byte, bufSize)
+	for i := f.TargetLength; i > 0; {
+		if bufSize > i {
+			bufSize = i
+			b = make([]byte, bufSize)
+		}
+		f.handle.Write(b)
+		i -= bufSize
+	}
+}
+
+func (f *incompleteFile) download(s fileSplit) {
 	// TODO
 }
