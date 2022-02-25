@@ -6,6 +6,8 @@ export class Download {
     id: number;
     name: string;
     status: number;
+    dl: number;
+    total: number;
 
     static createFrom(source: any = {}) {
         return new Download(source);
@@ -16,5 +18,7 @@ export class Download {
         this.id = source["id"];
         this.name = source["name"];
         this.status = source["status"];
+        this.dl = source["dl"];
+        this.total = source["total"];
     }
 }

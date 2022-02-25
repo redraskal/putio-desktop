@@ -51,6 +51,14 @@ const go = {
       "ReportPath": (arg1) => {
         return window.go.main.App.ReportPath(arg1);
       },
+      /**
+       * ShowDownload
+       * @param {number} arg1 - Go Type: int
+       * @returns {Promise<void>} 
+       */
+      "ShowDownload": (arg1) => {
+        return window.go.main.App.ShowDownload(arg1);
+      },
     },
   },
 

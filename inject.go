@@ -25,6 +25,9 @@ func (b *App) ReportPath(path string) {
 }
 
 func (b *App) ReportFile(path string, content string) {
+	if b.scriptsReady() {
+		return
+	}
 	log.Printf("File: %s, len: %d", path, len(content))
 	switch path {
 	case "wails/runtime.js":
@@ -50,6 +53,10 @@ func (b *App) requiresRedirect() bool {
 	return strings.HasSuffix(b.currentPath, "://wails/")
 }
 
+func (b *App) scriptsReady() bool {
+	return b.scripts.runtime != "" && b.scripts.ipc != "" && b.scripts.main != ""
+}
+
 func (b *App) canRedirect() bool {
-	return b.requiresRedirect() && b.scripts.runtime != "" && b.scripts.ipc != "" && b.scripts.main != ""
+	return b.requiresRedirect() && b.scriptsReady()
 }

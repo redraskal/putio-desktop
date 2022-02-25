@@ -10,6 +10,9 @@ function isDownloadURL(url) {
   return url.startsWith("https://api.put.io/v2/files/") || url.indexOf(".put.io/zipstream/") > -1;
 }
 
+var transferList = null;
+var trackedDLs = {};
+
 //
 // REPORTING CURRENT PAGE URL TO GO
 //
@@ -77,6 +80,21 @@ function _construct(tagName, innerHTML) {
   return element;
 }
 
+function updateDownload(download) {
+  if (transferList == null) return;
+
+  downloadEl = trackedDLs[download.id];
+
+  if (downloadEl == null) {
+    // Create element
+    downloadEl = _construct("li", JSON.stringify(download));
+    transferList.appendChild(downloadEl);
+    trackedDLs[download.id] = downloadEl;
+  } else {
+    downloadEl.innerHTML = JSON.stringify(download);
+  }
+}
+
 function injectDownloadsTab(transfers) {
   downloads = _construct("li", `
     <a href="/downloads">
@@ -92,7 +110,8 @@ function injectDownloadsTab(transfers) {
   })
   transfers.parentNode.insertBefore(downloads, transfers.nextSibling);
   count = downloads.querySelector("label");
-  window.runtime.EventsOn("download_state", () => {
+  window.runtime.EventsOn("download_state", download => {
+    // Updates the download counter in the tab
     window.go.main.App.CountDownloading().then(res => {
       if (res > 0) {
         count.innerHTML = res;
@@ -101,6 +120,7 @@ function injectDownloadsTab(transfers) {
         count.setAttribute("style", "display: none;");
       }
     })
+    updateDownload(download);
   });
 }
 
@@ -133,34 +153,20 @@ function injectDownloadsMenu(previousTab) {
           <div class="action-item">
             <div class="dropdown dropdown-gray">
               <button class="btn btn-default dropdown-label btn-fixed" type="button">
-              <i class="flaticon solid crosshairs-1"></i>
-              <span class="btn-label">Actions</span>
-              <i class="flaticon stroke down-1"></i>
-            </button>
-          <div class="dropdown-content">
-            <div class="dropdown-option btn-default with-icon">
-              <a><span><i id="Transfers-Actions-Re_Announce" class="flaticon solid bell-1"></i>Re-announce</span></a>
+                <i class="flaticon solid crosshairs-1"></i>
+                <span class="btn-label">Actions</span>
+                <i class="flaticon stroke down-1"></i>
+              </button>
             </div>
-            <div class="dropdown-option btn-default with-icon">
-              <a><span><i id="Transfers-Actions-Cancel_Selected" class="flaticon solid x-2"></i>Cancel selected</span></a>
+            <div class="dropdown-content">
+              <div class="dropdown-option btn-default with-icon">
+                <a><span><i id="Transfers-Actions-Re_Announce" class="flaticon solid bell-1"></i>Re-announce</span></a>
+              </div>
+              <div class="dropdown-option btn-default with-icon">
+                <a><span><i id="Transfers-Actions-Cancel_Selected" class="flaticon solid x-2"></i>Cancel selected</span></a>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    <div class="action-item" style="display: none;">
-      <div class="dropdown dropdown-gray">
-        <button class="btn btn-default dropdown-label btn-fixed" type="button">
-          <i class="flaticon stroke time-2"></i><span class="btn-label">Sort by ETA</span><i class="flaticon stroke down-1"></i>
-        </button>
-      <div class="dropdown-content">
-        <div class="dropdown-option btn-default with-icon">
-          <a><span><i id="Transfers-Sort-Name" class="flaticon stroke type-1"></i>Name</span></a>
-        </div>
-        <div class="dropdown-option btn-default with-icon">
-          <a><span><i id="Transfers-Sort-Date_Added" class="flaticon stroke calendar-1"></i>Date added</span></a>
-        </div>
-        <div class="dropdown-option btn-default with-icon">
-          <a><span><i id="Transfers-Sort-Downloaded" class="flaticon stroke fold-down-1"></i>Downloaded</span></a>
         </div>
       </div>
     </div>
@@ -180,12 +186,19 @@ function injectDownloadsMenu(previousTab) {
   // Appends the new Downloads view.
   downloads.toggleAttribute("data-downloads");
   rel.appendChild(downloads);
+  transferList = downloads.querySelector("ul.transfer-list");
+  // Appends all of the current downloads.
+  window.go.main.App.ListDownloads().then(downloads => {
+    downloads.forEach(download => updateDownload(download));
+  });
   // Listens for a view change to later reverse our changes.
   window.addEventListener("stateChange", function () {
     downloads.remove();
     downloadsTab.setAttribute("class", "");
     previousTab.setAttribute("class", "selected");
     previousView.removeAttribute("style");
+    transferList = null;
+    trackedDLs = {};
   }, { once: true });
 }
 
@@ -202,12 +215,11 @@ function tryOverrideDLs() {
     document.querySelectorAll("a").forEach(element => {
       const href = element.href;
       if (!href || !isDownloadURL(href) || element.override) return;
-      element.href = "#";
       element.override = true;
       element.addEventListener("click", function (e) {
         e.preventDefault();
         e.stopPropagation();
-        window.go.main.App.Queue(href);
+        window.go.main.App.Queue(e.currentTarget.href);
       }, { capture: true, useCapture: true });
     });
   }, 50);

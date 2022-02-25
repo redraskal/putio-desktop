@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -36,10 +37,20 @@ func (b *App) Queue(url string) {
 	}()
 }
 
+func (b *App) ShowDownload(id int) {
+	d, err := b.downloads.Get(id)
+	if err != nil {
+		b.frontend.ExecJS("alert('File not found');")
+		return
+	}
+	// TODO: Implementations for other platforms
+	exec.Command("explorer", "/select", d.Path())
+}
+
 func (b *App) CountDownloading() int {
 	return len(b.downloads.WithStatus(downloads.Downloading))
 }
 
 func (b *App) ListDownloads() []downloads.Download {
-	return b.downloads.Get()
+	return b.downloads.GetAll()
 }

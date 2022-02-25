@@ -12,6 +12,30 @@ func (c *Client) updateStatus(id int, s DownloadStatus) {
 	}
 }
 
+func (c *Client) updateTotal(id, total int) {
+	for i, val := range c.downloads {
+		if val.ID == id {
+			c.mutex.Lock()
+			c.downloads[i].Total = total
+			c.mutex.Unlock()
+			c.callback(c.downloads[i])
+			break
+		}
+	}
+}
+
+func (c *Client) incrementDownloaded(id, downloaded int) {
+	for i, val := range c.downloads {
+		if val.ID == id {
+			c.mutex.Lock()
+			c.downloads[i].Downloaded += downloaded
+			c.mutex.Unlock()
+			c.callback(c.downloads[i])
+			break
+		}
+	}
+}
+
 func (c *Client) WithStatus(s DownloadStatus) []Download {
 	res := make([]Download, 0)
 	for _, val := range c.downloads {
@@ -20,4 +44,8 @@ func (c *Client) WithStatus(s DownloadStatus) []Download {
 		}
 	}
 	return res
+}
+
+func (d Download) Path() string {
+	return d.transferInfo.Path
 }

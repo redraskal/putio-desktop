@@ -2,6 +2,7 @@ package downloads
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"math/rand"
 	"os"
@@ -28,6 +29,8 @@ type Download struct {
 	ID           int            `json:"id"`
 	Name         string         `json:"name"`
 	Status       DownloadStatus `json:"status"`
+	Downloaded   int            `json:"dl"`
+	Total        int            `json:"total"`
 	transferInfo transferInfo
 }
 
@@ -72,8 +75,17 @@ func New(opt Options, callback func(d Download)) (*Client, error) {
 	return &Client{opt, callback, downloads, opt.MaxConcurrent, &sync.Mutex{}}, nil
 }
 
-func (c *Client) Get() []Download {
+func (c *Client) GetAll() []Download {
 	return c.downloads
+}
+
+func (c *Client) Get(id int) (Download, error) {
+	for _, val := range c.downloads {
+		if val.ID == id {
+			return val, nil
+		}
+	}
+	return Download{}, errors.New("not found")
 }
 
 func (c *Client) Queue(url, path string) (id int) {
@@ -91,17 +103,13 @@ func (c *Client) Queue(url, path string) (id int) {
 	c.downloads = append(c.downloads, d)
 	c.mutex.Unlock()
 	c.callback(d)
-	if len(c.WithStatus(Downloading)) == 0 {
-		c.Run()
-	}
+	c.Run()
 	return
 }
 
 func (c *Client) Retry(id int) {
 	c.updateStatus(id, Queued)
-	if len(c.WithStatus(Downloading)) == 0 {
-		c.Run()
-	}
+	c.Run()
 }
 
 func (c *Client) Pause(id int) {
@@ -120,10 +128,13 @@ func (c *Client) Cancel(id int) {
 }
 
 func (c *Client) Run() {
+	slots := c.slots
+	if slots < 1 {
+		return
+	}
 	// Find downloads to resume or start
 	priority := c.WithStatus(Paused)
 	queue := c.WithStatus(Queued)
-	slots := c.slots
 	for _, val := range priority {
 		if slots < 1 {
 			break

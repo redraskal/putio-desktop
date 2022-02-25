@@ -7,6 +7,7 @@ export interface go {
 		Queue(arg1:string):Promise<void>
 		ReportFile(arg1:string,arg2:string):Promise<void>
 		ReportPath(arg1:string):Promise<void>
+		ShowDownload(arg1:number):Promise<void>
     },
   }
 
