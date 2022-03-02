@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strings"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -15,15 +16,22 @@ type js struct {
 func (b *App) ReportPath(path string) {
 	log.Printf("Current page reported: %s", path)
 	// If true, still local- must fetch wailsjs before redirecting to put.io.
-	if path == "file://wails/" {
+	b.currentPath = path
+	if b.requiresRedirect() {
+		// Resets the scripts if we refresh the application.
+		if runtime.Environment(b.ctx).BuildType == "dev" {
+			b.scripts = js{}
+		}
 		runtime.EventsEmit(b.ctx, "report_file", "wails/runtime.js")
 		runtime.EventsEmit(b.ctx, "report_file", "wails/ipc.js")
 		runtime.EventsEmit(b.ctx, "report_file", "main.js")
 	}
-	b.currentPath = path
 }
 
 func (b *App) ReportFile(path string, content string) {
+	if b.scriptsReady() {
+		return
+	}
 	log.Printf("File: %s, len: %d", path, len(content))
 	switch path {
 	case "wails/runtime.js":
@@ -46,9 +54,13 @@ func (b *App) injectJS() {
 }
 
 func (b *App) requiresRedirect() bool {
-	return b.currentPath == "file://wails/"
+	return strings.HasSuffix(b.currentPath, "://wails/")
+}
+
+func (b *App) scriptsReady() bool {
+	return b.scripts.runtime != "" && b.scripts.ipc != "" && b.scripts.main != ""
 }
 
 func (b *App) canRedirect() bool {
-	return b.requiresRedirect() && b.scripts.runtime != "" && b.scripts.ipc != "" && b.scripts.main != ""
+	return b.requiresRedirect() && b.scriptsReady()
 }

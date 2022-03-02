@@ -5,12 +5,41 @@ const go = {
   "main": {
     "App": {
       /**
+       * ClearCompleted
+       * @returns {Promise<void>} 
+       */
+      "ClearCompleted": () => {
+        return window.go.main.App.ClearCompleted();
+      },
+      /**
+       * CountDownloading
+       * @returns {Promise<number>}  - Go Type: int
+       */
+      "CountDownloading": () => {
+        return window.go.main.App.CountDownloading();
+      },
+      /**
+       * ListDownloads
+       * @returns {Promise<Array<Download>>}  - Go Type: []downloads.Download
+       */
+      "ListDownloads": () => {
+        return window.go.main.App.ListDownloads();
+      },
+      /**
        * Log
        * @param {string} arg1 - Go Type: string
        * @returns {Promise<void>} 
        */
       "Log": (arg1) => {
         return window.go.main.App.Log(arg1);
+      },
+      /**
+       * Queue
+       * @param {string} arg1 - Go Type: string
+       * @returns {Promise<void>} 
+       */
+      "Queue": (arg1) => {
+        return window.go.main.App.Queue(arg1);
       },
       /**
        * ReportFile
@@ -28,6 +57,14 @@ const go = {
        */
       "ReportPath": (arg1) => {
         return window.go.main.App.ReportPath(arg1);
+      },
+      /**
+       * ShowDownload
+       * @param {number} arg1 - Go Type: int
+       * @returns {Promise<void>} 
+       */
+      "ShowDownload": (arg1) => {
+        return window.go.main.App.ShowDownload(arg1);
       },
     },
   },
