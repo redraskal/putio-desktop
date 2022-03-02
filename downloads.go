@@ -44,13 +44,17 @@ func (b *App) ShowDownload(id int) {
 		return
 	}
 	// TODO: Implementations for other platforms
-	exec.Command("explorer", "/select", d.Path())
+	_ = exec.Command("explorer.exe", "/select,"+d.Path()).Run()
 }
 
 func (b *App) CountDownloading() int {
-	return len(b.downloads.WithStatus(downloads.Downloading))
+	return len(b.downloads.WithStatus(downloads.Downloading, downloads.Prefilling))
 }
 
 func (b *App) ListDownloads() []downloads.Download {
 	return b.downloads.GetAll()
+}
+
+func (b *App) ClearCompleted() {
+	b.downloads.ClearCompleted()
 }

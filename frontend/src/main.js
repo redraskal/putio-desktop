@@ -48,7 +48,7 @@ window.go.main.App.ReportPath(window.location.href);
 //
 
 window.runtime.EventsOn("report_file", path => {
-  // Requests the file using XML since fetch blocks file:// requests :(
+  // Requests the file using XHR since fetch blocks file:// requests :(
   var client = new XMLHttpRequest();
   client.open("GET", path);
   client.onreadystatechange = function () {
@@ -80,19 +80,112 @@ function _construct(tagName, innerHTML) {
   return element;
 }
 
+function formatBytes(bytes) {
+  unit = "bytes";
+  amount = bytes;
+
+  if (bytes > 1024) {
+    amount /= 1024;
+    unit = "KB";
+
+    if (bytes > (1024 * 1024)) {
+      amount /= 1024;
+      unit = "MB";
+
+      if (bytes > (1024 * 1024 * 1024)) {
+        amount /= 1024;
+        unit = "GB";
+      }
+    }
+  }
+
+  amount = +amount.toFixed(2);
+  return `${amount} ${unit}`;
+}
+
 function updateDownload(download) {
   if (transferList == null) return;
 
   downloadEl = trackedDLs[download.id];
 
+  if (download.total == -1) {
+    if (downloadEl != null) {
+      downloadEl.remove();
+      delete trackedDLs[download.id];
+    }
+    return;
+  }
+
   if (downloadEl == null) {
     // Create element
-    downloadEl = _construct("li", JSON.stringify(download));
+    downloadEl = _construct("li", `
+      <div>
+        <div class="css-0" style="display: none;">
+          <div class="checkbox">
+            <span class="effective-area"></span>
+            <input id="checkbox-${download.id}" type="checkbox">
+            <label for="checkbox-${download.id}"></label>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div>
+          <div>
+            <div>${download.name}</div>
+            <ul class="css-cpxq4n"></ul>
+          </div>
+          <div>
+            <div></div>
+          </div>
+        </div>
+        <div>
+          <a class="btn btn-success btn-mini" href="#" data-id="${download.id}"><span class="btn-label">Go to file</span></a>
+          <div style="display: none;">Error</div>
+        </div>
+      </div>
+    `);
     transferList.appendChild(downloadEl);
     trackedDLs[download.id] = downloadEl;
-  } else {
-    downloadEl.innerHTML = JSON.stringify(download);
+
+    downloadEl.querySelector("a.btn-success").addEventListener("click", function (e) {
+      window.go.main.App.ShowDownload(parseInt(e.currentTarget.getAttribute("data-id")));
+    });
   }
+
+  progress = (download.dl / download.total) * 100;
+
+  if (download.status != 0) {
+    downloadEl.querySelector("div:nth-child(2) > div:nth-child(2) > div").style = "display: none;";
+    downloadEl.querySelector("div:nth-child(2) > div:nth-child(2) > a").style = "";
+  } else {
+    downloadEl.querySelector("div:nth-child(2) > div:nth-child(2) > div").style = "";
+  }
+  
+  switch (download.status) {
+    case 0:
+      progressText = "Something went wrong =/";
+      break;
+    case 1:
+      progressText = "Queued";
+      break;
+    case 2:
+      progressText = `Paused | downloaded: ${formatBytes(download.dl)} of ${formatBytes(download.total)}`;
+      break;
+    case 3:
+      progressText = `prefilling: ${formatBytes(download.dl)} of ${formatBytes(download.total)}`;
+      break;
+    case 4:
+      progressText = `downloaded: ${formatBytes(download.dl)} of ${formatBytes(download.total)}`;
+      break;
+    case 5:
+      progressText = "Completed";
+      break;
+  }
+
+  // Updates the progress bar width.
+  downloadEl.style = `--progress-var: ${progress}%;`;
+
+  downloadEl.querySelector("div:nth-child(2) > div:nth-child(1) > div:nth-child(2) > div").innerHTML = progressText;
 }
 
 function injectDownloadsTab(transfers) {
@@ -122,6 +215,86 @@ function injectDownloadsTab(transfers) {
     })
     updateDownload(download);
   });
+}
+
+function injectDownloadStyle() {
+  style = _construct("style", `
+    div[data-downloads] li {
+      display: flex;
+      width: 100%;
+      min-height: 38px;
+      -webkit-box-align: center;
+      align-items: center;
+      padding: 16px 0px;
+      position: relative;
+      word-break: break-word;
+      border-bottom: 1px solid rgb(24, 24, 24);
+      border-top-color: rgb(24, 24, 24);
+      border-right-color: rgb(24, 24, 24);
+      border-left-color: rgb(24, 24, 24);
+      background: rgb(24, 24, 24);
+    }
+
+    div[data-downloads] li::after {
+      display: block;
+      content: "";
+      position: absolute;
+      z-index: 1;
+      left: 0px;
+      top: 0px;
+      height: 100%;
+      background: rgb(68, 68, 68);
+      width: var(--progress-var);
+    }
+
+    div[data-downloads] li > div:nth-child(1) {
+      margin: 0px 16px;
+      z-index: 2;
+    }
+
+    div[data-downloads] li > div:nth-child(2) {
+      z-index: 2;
+      display: flex;
+      flex: 1 1 0%;
+      -webkit-box-pack: justify;
+      justify-content: space-between;
+      -webkit-box-align: center;
+      align-items: center;
+    }
+
+    div[data-downloads] li > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) {
+      display: flex;
+      align-items: flex-end;
+    }
+
+    div[data-downloads] li > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div {
+      font-size: 13px;
+    }
+
+    div[data-downloads] li > div:nth-child(2) > div:nth-child(1) > div:nth-child(2) {
+      font-size: 10px;
+      margin-top: 5px;
+      line-height: 14px;
+    }
+
+    div[data-downloads] li > div:nth-child(2) > div:nth-child(1) > div:nth-child(2) > div {
+      display: inline-block;
+      vertical-align: text-top;
+      margin: 0px auto;
+    }
+
+    div[data-downloads] li > div:nth-child(2) > div:nth-child(2) {
+      margin-right: 16px;
+      z-index: 2;
+    }
+
+    div[data-downloads] li > div:nth-child(2) > div:nth-child(2) > div {
+      display: block;
+      font-size: 20px;
+      text-align: right;
+    }
+  `);
+  document.body.appendChild(style);
 }
 
 /* Injects a Downloads menu by hiding the previous view and appending the new one.
@@ -191,6 +364,10 @@ function injectDownloadsMenu(previousTab) {
   window.go.main.App.ListDownloads().then(downloads => {
     downloads.forEach(download => updateDownload(download));
   });
+  // Listens for clear completed button clicks.
+  downloads.querySelector("div.subaction > button").addEventListener("click", function (e) {
+    window.go.main.App.ClearCompleted();
+  });
   // Listens for a view change to later reverse our changes.
   window.addEventListener("stateChange", function () {
     downloads.remove();
@@ -207,7 +384,9 @@ function injectUI() {
   _waitFor("aside > ul > li:nth-child(2)", function (transfers) {
     injectDownloadsTab(transfers);
   });
+  injectDownloadStyle();
   tryOverrideDLs();
+  listenZipstream();
 }
 
 function tryOverrideDLs() {
@@ -223,6 +402,19 @@ function tryOverrideDLs() {
       }, { capture: true, useCapture: true });
     });
   }, 50);
+}
+
+function listenZipstream() {
+  setInterval(function () {
+    download = document.querySelector("div.task-zip > div:nth-child(1) > span > a");
+    if (download != null) {
+      link = download.href;
+      closeButton = download.parentNode.parentNode.parentNode.querySelector("i.task-close");
+      closeButton.click();
+      window.go.main.App.Queue(link);
+      window.go.main.App.Log("zipstream: " + link);
+    }
+  }, 100);
 }
 
 if (signedIn()) {

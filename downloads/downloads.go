@@ -45,19 +45,21 @@ const (
 	Error DownloadStatus = iota
 	Queued
 	Paused
+	Prefilling
 	Downloading
 	Finished
 	Cancelled
 )
 
+type downloadCache struct {
+	Path string `json:"path"`
+	Download
+}
+
 func New(opt Options, callback func(d Download)) (*Client, error) {
 	downloads := make([]Download, 0)
 	if file, err := os.ReadFile(path.Join(opt.Path, "downloads.json")); err == nil {
-		type layout struct {
-			Path string `json:"path"`
-			Download
-		}
-		data := make([]layout, 0)
+		data := make([]downloadCache, 0)
 		if err = json.Unmarshal(file, &data); err == nil {
 			for i, val := range data {
 				val.Download.transferInfo = transferInfo{
@@ -71,8 +73,14 @@ func New(opt Options, callback func(d Download)) (*Client, error) {
 	} else {
 		log.Println(err)
 	}
-	// TODO: Add shutdown hook
 	return &Client{opt, callback, downloads, opt.MaxConcurrent, &sync.Mutex{}}, nil
+}
+
+func (c *Client) Shutdown() {
+	for _, val := range c.WithStatus(Queued, Downloading, Prefilling) {
+		c.Pause(val.ID)
+	}
+	// TODO: Save stuff to download cache file
 }
 
 func (c *Client) GetAll() []Download {
@@ -90,7 +98,7 @@ func (c *Client) Get(id int) (Download, error) {
 
 func (c *Client) Queue(url, path string) (id int) {
 	c.mutex.Lock()
-	id = rand.Int()
+	id = rand.Intn(9000000)
 	d := Download{
 		ID:     id,
 		Name:   filepath.Base(path),
@@ -160,6 +168,9 @@ func (c *Client) ClearCompleted() {
 	for _, val := range c.downloads {
 		if val.Status != Finished {
 			d = append(d, val)
+		} else {
+			val.Total = -1
+			c.callback(val)
 		}
 	}
 	c.downloads = d

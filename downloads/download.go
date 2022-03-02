@@ -27,10 +27,10 @@ type fileSplit struct {
 	nChunks        int
 }
 
-const MIN_LEN_SPLIT = 100 * 1e+6 // 100 mb
+const MIN_LEN_TO_SPLIT = 100 * 1e+6 // 100 mb
 
 func (c *Client) download(d Download) {
-	if d.Status >= Downloading {
+	if d.Status >= Prefilling {
 		return
 	}
 	new := d.transferInfo.Url != ""
@@ -57,7 +57,7 @@ func (c *Client) download(d Download) {
 	log.Println("Len: ", header.ContentLength)
 	c.updateTotal(d.ID, header.ContentLength)
 	nSplits := c.opt.Splits
-	if header.ContentLength <= c.opt.Splits || header.ContentLength < MIN_LEN_SPLIT {
+	if header.ContentLength <= c.opt.Splits || header.ContentLength < MIN_LEN_TO_SPLIT {
 		nSplits = 1
 	}
 	incompleteFile := incompleteFile{
@@ -67,7 +67,7 @@ func (c *Client) download(d Download) {
 		Splits:       make([]fileSplit, nSplits),
 		transferInfo: d.transferInfo,
 	}
-	handle, err := os.OpenFile(d.transferInfo.Path+".incomplete", os.O_RDWR|os.O_CREATE, 0755)
+	handle, err := os.OpenFile(d.Path(), os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		log.Println(err)
 		c.updateStatus(d.ID, Error)
@@ -75,7 +75,10 @@ func (c *Client) download(d Download) {
 	}
 	incompleteFile.handle = handle
 	if new {
-		incompleteFile.prefill()
+		c.updateStatus(d.ID, Prefilling)
+		incompleteFile.prefill(c)
+		c.updateStatus(d.ID, Downloading)
+		c.updateDownloaded(d.ID, 0)
 	}
 	defer func() {
 		c.mutex.Lock()
@@ -84,7 +87,6 @@ func (c *Client) download(d Download) {
 		c.Run()
 	}()
 	// TODO: Check if file length has changed if a .incomplete file was loaded
-	// TODO: Check hash of file?
 	splitSize := incompleteFile.TargetLength / nSplits
 	var g errgroup.Group
 	for i, val := range incompleteFile.Splits {
@@ -97,6 +99,7 @@ func (c *Client) download(d Download) {
 		if val.nChunks < 1 {
 			val.nChunks = 1
 		}
+		// Turns i & val into constants so they are not modified due to delayed download calls.
 		iC := i
 		valC := val
 		g.Go(func() error {
@@ -109,15 +112,19 @@ func (c *Client) download(d Download) {
 		c.updateStatus(d.ID, Error)
 		return
 	}
+	handle.Close()
+	if d.Status == Paused {
+		log.Printf("Download paused for %d, %s", d.ID, d.transferInfo.Url)
+		return
+	}
 	log.Printf("Download complete for %d, %s\n", d.ID, d.transferInfo.Url)
 	c.updateStatus(d.ID, Finished)
-	handle.Close()
 	if err := os.Rename(d.transferInfo.Path+".incomplete", d.transferInfo.Path); err != nil {
 		log.Println(err)
 	}
 }
 
-func (f *incompleteFile) prefill() {
+func (f *incompleteFile) prefill(c *Client) {
 	bufSize := f.ChunkSize
 	b := make([]byte, bufSize)
 	for i := f.TargetLength; i > 0; {
@@ -126,6 +133,7 @@ func (f *incompleteFile) prefill() {
 			b = make([]byte, bufSize)
 		}
 		f.handle.Write(b)
+		c.incrementDownloaded(f.ID, bufSize)
 		i -= bufSize
 	}
 }
@@ -133,6 +141,10 @@ func (f *incompleteFile) prefill() {
 func (f *incompleteFile) download(s *fileSplit, splitIndex int, id int, c *Client) error {
 	log.Printf("split index: %d, start: %d, end: %d, complete: %d/%d\n", splitIndex, s.start, s.end, s.ChunksComplete, s.nChunks)
 	for i := s.ChunksComplete; i < s.nChunks; i++ {
+		if d, err := c.Get(id); err != nil || (d.Status < Prefilling || d.Status > Downloading) {
+			log.Printf("split index: %d, paused\n", splitIndex)
+			break
+		}
 		start := s.start + (i * f.ChunkSize)
 		end := start + f.ChunkSize
 		if i == (s.nChunks - 1) {

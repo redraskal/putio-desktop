@@ -49,7 +49,9 @@ func (b *App) domReady(ctx context.Context) {
 	}
 }
 
-func (b *App) shutdown(ctx context.Context) {}
+func (b *App) shutdown(ctx context.Context) {
+	b.downloads.Shutdown()
+}
 
 func (b *App) Log(line string) {
 	log.Printf("[JS] %s", line)

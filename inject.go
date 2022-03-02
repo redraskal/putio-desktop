@@ -18,6 +18,10 @@ func (b *App) ReportPath(path string) {
 	// If true, still local- must fetch wailsjs before redirecting to put.io.
 	b.currentPath = path
 	if b.requiresRedirect() {
+		// Resets the scripts if we refresh the application.
+		if runtime.Environment(b.ctx).BuildType == "dev" {
+			b.scripts = js{}
+		}
 		runtime.EventsEmit(b.ctx, "report_file", "wails/runtime.js")
 		runtime.EventsEmit(b.ctx, "report_file", "wails/ipc.js")
 		runtime.EventsEmit(b.ctx, "report_file", "main.js")
