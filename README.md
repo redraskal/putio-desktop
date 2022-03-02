@@ -18,3 +18,6 @@ To run in live development mode, run `wails dev` in the project directory.
 
 ## Building
 For a production build, use `wails build`.
+
+## Thanks
+* Huge thanks to [@leaanthony](https://github.com/leaanthony) and contributors over at https://github.com/wailsapp/wails for the platform this project runs on
