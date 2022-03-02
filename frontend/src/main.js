@@ -404,6 +404,13 @@ function injectUI() {
   }, 2000);
 }
 
+function enableWindowDrag() {
+  el = _construct("div", ``);
+  el.toggleAttribute("data-wails-drag");
+  el.style = "position: absolute;width: 100%;height: 100%;";
+  document.body.prepend(el);
+}
+
 function tryOverrideDLs() {
   setInterval(function () {
     document.querySelectorAll("a").forEach(element => {
@@ -454,3 +461,5 @@ function listenZipstream() {
 if (signedIn()) {
   injectUI();
 }
+
+enableWindowDrag();
