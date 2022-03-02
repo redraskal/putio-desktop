@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -43,8 +42,7 @@ func (b *App) ShowDownload(id int) {
 		b.frontend.ExecJS("alert('File not found');")
 		return
 	}
-	// TODO: Implementations for other platforms
-	_ = exec.Command("explorer.exe", "/select,"+d.Path()).Run()
+	_ = displayFile(d.Path())
 }
 
 func (b *App) CountDownloading() int {
