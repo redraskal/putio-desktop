@@ -9,7 +9,6 @@ A desktop client for [put.io](https://put.io) supporting multi-connection downlo
 ## Roadmap for v1
 - [ ] Support resuming downloads
 - [ ] Support pausing downloads from frontend
-- [ ] Support VLC playlist download prompt
 - [ ] Support macOS/linux "Go to file"
 - [ ] Cleanup frontend code
 

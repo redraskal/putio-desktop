@@ -10,8 +10,14 @@ function isDownloadURL(url) {
   return url.startsWith("https://api.put.io/v2/files/") || url.indexOf(".put.io/zipstream/") > -1;
 }
 
+function isFileURL(url) {
+  return url.startsWith("https://app.put.io/files");
+}
+
 var transferList = null;
 var trackedDLs = {};
+var token = null;
+var vlcOverwritten = false;
 
 //
 // REPORTING CURRENT PAGE URL TO GO
@@ -37,6 +43,11 @@ window.addEventListener("stateChange", function () {
   this.window.go.main.App.ReportPath(window.location.href);
   if (signedIn() && !uiInjected()) {
     injectUI();
+  }
+  if (isFileURL(window.location.href)) {
+    tryOverrideVLCDLs();
+  } else {
+    vlcOverwritten = false;
   }
 });
 
@@ -387,6 +398,10 @@ function injectUI() {
   injectDownloadStyle();
   tryOverrideDLs();
   listenZipstream();
+  // I don't know why but Sentry wants to murder me if I run this function any sooner...
+  setTimeout(function () {
+    tryOverrideVLCDLs();
+  }, 2000);
 }
 
 function tryOverrideDLs() {
@@ -395,6 +410,10 @@ function tryOverrideDLs() {
       const href = element.href;
       if (!href || !isDownloadURL(href) || element.override) return;
       element.override = true;
+      parts = href.split("?oauth_token=");
+      if (parts.length > 1) {
+        token = parts[1];
+      }
       element.addEventListener("click", function (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -402,6 +421,21 @@ function tryOverrideDLs() {
       }, { capture: true, useCapture: true });
     });
   }, 50);
+}
+
+function tryOverrideVLCDLs() {
+  if (vlcOverwritten || !isFileURL(window.location.href)) return;
+  vlcOverwritten = true;
+  _waitFor("#Your_Files-Actions-VLC_Playlist", function (button) {
+    button.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      currentFile = window.location.href.split("files/");
+      currentFile.push("0");
+      currentFile = currentFile[1];
+      window.go.main.App.Queue(`https://api.put.io/v2/files/${currentFile}/xspf?oauth_token=${token}`);
+    }, { capture: true, useCapture: true });
+  });
 }
 
 function listenZipstream() {
