@@ -14,7 +14,15 @@ A desktop client for [put.io](https://put.io) supporting multi-connection downlo
 - [ ] Cleanup frontend code
 
 ## Live Development
+Install wails v2 cli with the following command:
+```
+go install github.com/wailsapp/wails/v2/cmd/wails@latest
+```
+See the [wails documentation](https://wails.io/docs/gettingstarted/installation) for more details.
+
 To run in live development mode, run `wails dev` in the project directory.
+
+**At the moment, you must re-run the dev command to see frontend changes.**
 
 ## Building
 For a production build, use `wails build`.
