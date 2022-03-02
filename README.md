@@ -4,6 +4,8 @@ A desktop client for [put.io](https://put.io) supporting multi-connection downlo
 ![putio-desktop-dev_tnr2lgKl0o](https://user-images.githubusercontent.com/6241454/156285218-d5df17f1-138b-448d-a288-d896b42b6c61.png)
 
 ## Install
+**putio-desktop has been tested on Windows 11 & macOS Monterey on M1. Other platforms are considered experimental.**
+
 - [Download the latest release](https://github.com/redraskal/putio-desktop/releases).
 
 ## Roadmap for v1
