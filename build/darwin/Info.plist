@@ -3,7 +3,7 @@
 	<key>CFBundlePackageType</key><string>APPL</string>
 	<key>CFBundleName</key><string>putio-desktop</string>
 	<key>CFBundleExecutable</key><string>putio-desktop</string>
-	<key>CFBundleIdentifier</key><string>com.wails.putio-desktop</string>
+	<key>CFBundleIdentifier</key><string>dev.ryben.putio-desktop</string>
 	<key>CFBundleVersion</key><string>1.0.0</string>
 	<key>CFBundleGetInfoString</key><string>Built using Wails (https://wails.app)</string>
 	<key>CFBundleShortVersionString</key><string>1.0.0</string>
