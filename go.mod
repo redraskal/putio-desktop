@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/sqweek/dialog v0.0.0-20211002065838-9a201b55ab91
-	github.com/wailsapp/wails/v2 v2.0.0-beta.32
+	github.com/wailsapp/wails/v2 v2.0.0-beta.33
 )
 
 require github.com/rivo/uniseg v0.2.0 // indirect

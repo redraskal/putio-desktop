@@ -54,7 +54,7 @@ func (b *App) injectJS() {
 }
 
 func (b *App) requiresRedirect() bool {
-	return strings.HasSuffix(b.currentPath, "://wails/")
+	return strings.HasPrefix(b.currentPath, "https://wails.localhost") || strings.HasSuffix(b.currentPath, "://wails/")
 }
 
 func (b *App) scriptsReady() bool {

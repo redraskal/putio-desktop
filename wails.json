@@ -16,5 +16,11 @@
   },
   "debounceMS": 100,
   "devserverurl": "http://localhost:34115",
-  "appargs": ""
+  "appargs": "",
+  "info": {
+    "companyName": "redraskal",
+    "productName": "putio-desktop",
+    "comments": "https://github.com/redraskal/putio-desktop"
+  },
+  "nsisType": "multiple"
 }
