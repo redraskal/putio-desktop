@@ -170,6 +170,7 @@ function updateDownload(download) {
     downloadEl.querySelector("div:nth-child(2) > div:nth-child(2) > a").style = "";
   } else {
     downloadEl.querySelector("div:nth-child(2) > div:nth-child(2) > div").style = "";
+    downloadEl.querySelector("div:nth-child(2) > div:nth-child(2) > a").style = "display: none;";
   }
   
   switch (download.status) {

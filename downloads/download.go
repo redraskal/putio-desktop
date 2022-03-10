@@ -12,32 +12,28 @@ import (
 )
 
 type incompleteFile struct {
-	ID           int         `json:"id"`
-	TargetLength int         `json:"len"`
-	ChunkSize    int         `json:"c"`
-	Splits       []fileSplit `json:"s"`
+	ID           int
+	TargetLength int
+	ChunkSize    int
+	Splits       []*fileSplit
 	handle       *os.File
 	transferInfo transferInfo
 }
 
 type fileSplit struct {
-	ChunksComplete int `json:"c"`
-	start          int
-	end            int
-	nChunks        int
+	ChunksComplete int
+	Start          int
+	End            int
+	NChunks        int
 }
 
 const MIN_LEN_TO_SPLIT = 100 * 1e+6 // 100 mb
 
-func (c *Client) download(d Download) {
+func (c *Client) download(d *Download) {
 	if d.Status >= Prefilling {
 		return
 	}
-	new := d.transferInfo.Url != ""
-	if !new {
-		// TODO: Attempt to load .incomplete file
-		return
-	}
+	new := d.Downloaded == 0
 	log.Printf("Starting download for %d, %s\n", d.ID, d.transferInfo.Url)
 	c.updateStatus(d.ID, Downloading)
 	c.mutex.Lock()
@@ -56,16 +52,33 @@ func (c *Client) download(d Download) {
 	}
 	log.Println("Len: ", header.ContentLength)
 	c.updateTotal(d.ID, header.ContentLength)
+	if !new && d.incompleteFile.TargetLength != header.ContentLength {
+		log.Println(errors.New("head len does not match target len"))
+		c.updateStatus(d.ID, Error)
+		return
+	}
+	if !new {
+		if stat, err := os.Stat(d.Path()); err != nil || stat.Size() != int64(d.incompleteFile.TargetLength) {
+			log.Printf("Restarting download because file len does not match target len for %d, %s\n", d.ID, d.transferInfo.Url)
+			c.updateDownloaded(d.ID, 0)
+			d.incompleteFile.transferInfo = d.transferInfo
+			new = true
+		}
+	}
 	nSplits := c.opt.Splits
 	if header.ContentLength <= c.opt.Splits || header.ContentLength < MIN_LEN_TO_SPLIT {
 		nSplits = 1
 	}
-	incompleteFile := incompleteFile{
-		ID:           d.ID,
-		TargetLength: header.ContentLength,
-		ChunkSize:    30 * 1e+6, // 30 mb
-		Splits:       make([]fileSplit, nSplits),
-		transferInfo: d.transferInfo,
+	if new {
+		d.incompleteFile.TargetLength = header.ContentLength
+		d.incompleteFile.ChunkSize = 30 * 1e+6 // 30 mb
+		var s []*fileSplit
+		for i := 0; i < nSplits; i++ {
+			s = append(s, &fileSplit{})
+		}
+		d.incompleteFile.Splits = s
+	} else {
+		d.incompleteFile.transferInfo = d.transferInfo
 	}
 	handle, err := os.OpenFile(d.Path(), os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
@@ -73,10 +86,10 @@ func (c *Client) download(d Download) {
 		c.updateStatus(d.ID, Error)
 		return
 	}
-	incompleteFile.handle = handle
+	d.incompleteFile.handle = handle
 	if new {
 		c.updateStatus(d.ID, Prefilling)
-		incompleteFile.prefill(c)
+		d.incompleteFile.prefill(c)
 		c.updateStatus(d.ID, Downloading)
 		c.updateDownloaded(d.ID, 0)
 	}
@@ -86,24 +99,25 @@ func (c *Client) download(d Download) {
 		c.mutex.Unlock()
 		c.Run()
 	}()
-	// TODO: Check if file length has changed if a .incomplete file was loaded
-	splitSize := incompleteFile.TargetLength / nSplits
+	splitSize := d.incompleteFile.TargetLength / nSplits
 	var g errgroup.Group
-	for i, val := range incompleteFile.Splits {
-		val.start = i * splitSize
-		val.end = val.start + splitSize
-		if i == (nSplits - 1) {
-			val.end = incompleteFile.TargetLength
-		}
-		val.nChunks = (val.end - val.start) / incompleteFile.ChunkSize
-		if val.nChunks < 1 {
-			val.nChunks = 1
+	for i, val := range d.incompleteFile.Splits {
+		if new {
+			val.Start = i * splitSize
+			val.End = val.Start + splitSize
+			if i == (nSplits - 1) {
+				val.End = d.incompleteFile.TargetLength
+			}
+			val.NChunks = (val.End - val.Start) / d.incompleteFile.ChunkSize
+			if val.NChunks < 1 {
+				val.NChunks = 1
+			}
 		}
 		// Turns i & val into constants so they are not modified due to delayed download calls.
 		iC := i
 		valC := val
 		g.Go(func() error {
-			return incompleteFile.download(&valC, iC, d.ID, c)
+			return d.incompleteFile.download(valC, iC, d.ID, c)
 		})
 	}
 	if err := g.Wait(); err != nil {
@@ -115,6 +129,11 @@ func (c *Client) download(d Download) {
 	handle.Close()
 	if d.Status == Paused {
 		log.Printf("Download paused for %d, %s", d.ID, d.transferInfo.Url)
+		return
+	}
+	if d.Status == Cancelled {
+		log.Printf("Download cancelled for %d, %s", d.ID, d.transferInfo.Url)
+		c.clear(Cancelled)
 		return
 	}
 	log.Printf("Download complete for %d, %s\n", d.ID, d.transferInfo.Url)
@@ -139,16 +158,16 @@ func (f *incompleteFile) prefill(c *Client) {
 }
 
 func (f *incompleteFile) download(s *fileSplit, splitIndex int, id int, c *Client) error {
-	log.Printf("split index: %d, start: %d, end: %d, complete: %d/%d\n", splitIndex, s.start, s.end, s.ChunksComplete, s.nChunks)
-	for i := s.ChunksComplete; i < s.nChunks; i++ {
+	log.Printf("split index: %d, start: %d, end: %d, complete: %d/%d\n", splitIndex, s.Start, s.End, s.ChunksComplete, s.NChunks)
+	for i := s.ChunksComplete; i < s.NChunks; i++ {
 		if d, err := c.Get(id); err != nil || (d.Status < Prefilling || d.Status > Downloading) {
 			log.Printf("split index: %d, paused\n", splitIndex)
 			break
 		}
-		start := s.start + (i * f.ChunkSize)
+		start := s.Start + (i * f.ChunkSize)
 		end := start + f.ChunkSize
-		if i == (s.nChunks - 1) {
-			end = s.end
+		if i == (s.NChunks - 1) {
+			end = s.End
 		}
 		size := (end - start)
 		r := fmt.Sprintf("bytes=%d-%d", start, end)
@@ -162,7 +181,7 @@ func (f *incompleteFile) download(s *fileSplit, splitIndex int, id int, c *Clien
 			return err
 		}
 		defer res.Body.Close()
-		if res.StatusCode != http.StatusOK && (s.nChunks > 1 && res.StatusCode != http.StatusPartialContent) {
+		if res.StatusCode != http.StatusOK && (s.NChunks > 1 && res.StatusCode != http.StatusPartialContent) {
 			return errors.New("split: bad status: " + res.Status)
 		}
 		w := NewSectionWriter(f.handle, int64(start), int64(size+1))
@@ -171,7 +190,7 @@ func (f *incompleteFile) download(s *fileSplit, splitIndex int, id int, c *Clien
 		}
 		s.ChunksComplete++
 		c.incrementDownloaded(id, size)
-		log.Printf("split index: %d, complete: %d/%d\n", splitIndex, s.ChunksComplete, s.nChunks)
+		log.Printf("split index: %d, complete: %d/%d\n", splitIndex, s.ChunksComplete, s.NChunks)
 	}
 	return nil
 }

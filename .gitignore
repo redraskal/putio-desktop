@@ -8,3 +8,4 @@ build/windows/installer
 
 # The black hole that is...
 node_modules
+downloads.json

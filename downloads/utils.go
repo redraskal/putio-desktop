@@ -6,7 +6,7 @@ func (c *Client) updateStatus(id int, s DownloadStatus) {
 			c.mutex.Lock()
 			c.downloads[i].Status = s
 			c.mutex.Unlock()
-			c.callback(c.downloads[i])
+			c.callback(*c.downloads[i])
 			break
 		}
 	}
@@ -18,7 +18,7 @@ func (c *Client) updateDownloaded(id, downloaded int) {
 			c.mutex.Lock()
 			c.downloads[i].Downloaded = downloaded
 			c.mutex.Unlock()
-			c.callback(c.downloads[i])
+			c.callback(*c.downloads[i])
 			break
 		}
 	}
@@ -30,7 +30,7 @@ func (c *Client) updateTotal(id, total int) {
 			c.mutex.Lock()
 			c.downloads[i].Total = total
 			c.mutex.Unlock()
-			c.callback(c.downloads[i])
+			c.callback(*c.downloads[i])
 			break
 		}
 	}
@@ -42,14 +42,14 @@ func (c *Client) incrementDownloaded(id, downloaded int) {
 			c.mutex.Lock()
 			c.downloads[i].Downloaded += downloaded
 			c.mutex.Unlock()
-			c.callback(c.downloads[i])
+			c.callback(*c.downloads[i])
 			break
 		}
 	}
 }
 
-func (c *Client) WithStatus(s ...DownloadStatus) []Download {
-	res := make([]Download, 0)
+func (c *Client) WithStatus(s ...DownloadStatus) []*Download {
+	res := make([]*Download, 0)
 	for _, val := range c.downloads {
 		for _, valid := range s {
 			if val.Status == valid {
