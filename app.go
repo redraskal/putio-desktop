@@ -34,7 +34,7 @@ func (b *App) startup(ctx context.Context) {
 		Splits:        5,
 	}, b.downloadState); err == nil {
 		b.downloads = d
-		d.Run()
+		d.RunAndResume()
 	}
 }
 
@@ -45,7 +45,9 @@ func (b *App) domReady(ctx context.Context) {
 }
 
 func (b *App) shutdown(ctx context.Context) {
-	b.downloads.Shutdown()
+	if err := b.downloads.Shutdown(); err != nil {
+		log.Println(err)
+	}
 }
 
 func (b *App) Log(line string) {
