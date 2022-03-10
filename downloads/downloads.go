@@ -59,6 +59,7 @@ type downloadCache struct {
 }
 
 func New(opt Options, callback func(d Download)) (*Client, error) {
+	log.Println("downloads working dir:", opt.Path)
 	downloads := make([]*Download, 0)
 	if file, err := os.ReadFile(path.Join(opt.Path, "downloads.json")); err == nil {
 		data := make([]downloadCache, 0)

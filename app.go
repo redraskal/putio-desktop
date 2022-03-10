@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"log"
+	"os"
+	"path/filepath"
 
 	"github.com/redraskal/putio-desktop/downloads"
 )
@@ -28,8 +30,13 @@ func (b *App) startup(ctx context.Context) {
 	if f := ctx.Value("frontend"); f != nil {
 		b.frontend = f.(frontend)
 	}
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	workingDir := filepath.Dir(ex)
 	if d, err := downloads.New(downloads.Options{
-		Path:          ".",
+		Path:          workingDir,
 		MaxConcurrent: 5,
 		Splits:        5,
 	}, b.downloadState); err == nil {
