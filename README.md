@@ -9,7 +9,6 @@ A desktop client for [put.io](https://put.io) supporting multi-connection downlo
 - [Download the latest release](https://github.com/redraskal/putio-desktop/releases).
 
 ## Roadmap for v1
-- [ ] Support resuming downloads
 - [ ] Support pausing downloads from frontend
 - [ ] Cleanup frontend code
 
