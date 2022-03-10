@@ -1,11 +1,9 @@
 package downloads
 
 import (
-	"encoding/json"
 	"errors"
 	"log"
 	"math/rand"
-	"os"
 	"path"
 	"path/filepath"
 	"sync"
@@ -23,6 +21,7 @@ type Options struct {
 	Path          string
 	MaxConcurrent int
 	Splits        int
+	cachePath     string
 }
 
 type Download struct {
@@ -52,50 +51,27 @@ const (
 	Cancelled
 )
 
-type downloadCache struct {
-	TransferInfo   transferInfo   `json:"t"`
-	IncompleteFile incompleteFile `json:"if"`
-	Download
-}
-
-func New(opt Options, callback func(d Download)) (*Client, error) {
-	log.Println("downloads working dir:", opt.Path)
+func New(opt Options, callback func(d Download)) *Client {
+	opt.cachePath = path.Join(opt.Path, "downloads.json")
+	log.Println("downloads cache path:", opt.cachePath)
 	downloads := make([]*Download, 0)
-	if file, err := os.ReadFile(path.Join(opt.Path, "downloads.json")); err == nil {
-		data := make([]downloadCache, 0)
-		if err = json.Unmarshal(file, &data); err == nil {
-			for _, val := range data {
-				val.Download.transferInfo = val.TransferInfo
-				val.Download.incompleteFile = &val.IncompleteFile
-				downloads = append(downloads, &val.Download)
-			}
-		} else {
-			log.Println(err)
-		}
-	} else {
+	cache, err := readCache(opt.cachePath)
+	if err != nil {
 		log.Println(err)
 	}
-	return &Client{opt, callback, downloads, opt.MaxConcurrent, &sync.Mutex{}}, nil
+	for _, val := range cache {
+		val.Download.transferInfo = val.TransferInfo
+		val.Download.incompleteFile = &val.IncompleteFile
+		downloads = append(downloads, &val.Download)
+	}
+	return &Client{opt, callback, downloads, opt.MaxConcurrent, &sync.Mutex{}}
 }
 
 func (c *Client) Shutdown() error {
 	for _, val := range c.WithStatus(Queued, Downloading, Prefilling) {
 		c.Pause(val.ID)
 	}
-	// Save downloads to download cache file
-	data := make([]downloadCache, len(c.downloads))
-	for i, val := range c.downloads {
-		data[i] = downloadCache{
-			val.transferInfo,
-			*val.incompleteFile,
-			*val,
-		}
-	}
-	b, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(path.Join(c.opt.Path, "downloads.json"), b, os.ModePerm)
+	return c.saveCache()
 }
 
 func (c *Client) GetAll() []Download {

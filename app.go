@@ -35,14 +35,13 @@ func (b *App) startup(ctx context.Context) {
 		panic(err)
 	}
 	workingDir := filepath.Dir(ex)
-	if d, err := downloads.New(downloads.Options{
+	c := downloads.New(downloads.Options{
 		Path:          workingDir,
 		MaxConcurrent: 5,
 		Splits:        5,
-	}, b.downloadState); err == nil {
-		b.downloads = d
-		d.RunAndResume()
-	}
+	}, b.downloadState)
+	b.downloads = c
+	c.RunAndResume()
 }
 
 func (b *App) domReady(ctx context.Context) {

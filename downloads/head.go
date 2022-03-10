@@ -23,8 +23,9 @@ func Head(url string) (header Header, err error) {
 		return
 	}
 	name, err := parseFileName(res.Header)
+	mime := strings.Split(res.Header.Get("Content-Type"), ";")[0]
 	header = Header{
-		strings.Split(res.Header.Get("Content-Type"), ";")[0],
+		mime,
 		len,
 		name,
 	}
